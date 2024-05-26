@@ -1,25 +1,41 @@
-from rest_framework import authentication,generics, mixins, permissions
+from rest_framework import generics, mixins
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
 
 from .models import Product
-from .permissions import IsStaffEditorPermission
+from api.mixins import StaffEditorPermissionMixin
 from .serializers import ProductSerializer
 
 
 
 
-class ProductListCreateAPIView(generics.ListCreateAPIView):
+class ProductListCreateAPIView(
+    StaffEditorPermissionMixin,
+    generics.ListCreateAPIView):
     """
     List and
-    Create a product, but if content is none content = title
+    Create a product,
+    if content is none content = title
     """
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-    authentication_classes = [authentication.SessionAuthentication]
-    permission_classes = [permissions.IsAdminUser,IsStaffEditorPermission]
+
+    # ---- ADDED DEFAULT TO settings.py ------
+
+    # authentication_classes = [
+    #     authentication.SessionAuthentication,
+    #     TokenAuthentication,
+    #     ]
+    
+    # ---- ADDED MIXIN TO api.mixins.py ------
+
+    # permission_classes = [
+    #     permissions.IsAdminUser,
+    #     IsStaffEditorPermission,
+    #     ]
+
     # IsAuthenticatedOrReadOnly -> can only read
     # IsAuthenticated -> Need be authenticated
     # DjangoModelPermissions -> Group Permissions
@@ -33,7 +49,9 @@ class ProductListCreateAPIView(generics.ListCreateAPIView):
         return super().perform_create(serializer)
 
 
-class ProductDetailAPIView(generics.RetrieveAPIView):
+class ProductDetailAPIView(
+    StaffEditorPermissionMixin,
+    generics.RetrieveAPIView):
     """
     Get one single product
     """
@@ -41,7 +59,9 @@ class ProductDetailAPIView(generics.RetrieveAPIView):
     serializer_class = ProductSerializer
     # lookup_field = 'pk' -> int
 
-class ProductUpdateAPIView(generics.UpdateAPIView):
+class ProductUpdateAPIView(
+    StaffEditorPermissionMixin,
+    generics.UpdateAPIView):
     """
     Update one single product
     """
@@ -55,7 +75,9 @@ class ProductUpdateAPIView(generics.UpdateAPIView):
 
         return super().perform_update(serializer)
 
-class ProductDestroyAPIView(generics.DestroyAPIView):
+class ProductDestroyAPIView(
+    StaffEditorPermissionMixin,
+    generics.DestroyAPIView):
     """
     Delete one single product
     """
@@ -68,7 +90,9 @@ class ProductDestroyAPIView(generics.DestroyAPIView):
         return super().perform_destroy(instance)
 
 
+# Mixins
 class ProductMixinView(
+    StaffEditorPermissionMixin,
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
@@ -108,6 +132,7 @@ class ProductMixinView(
 #     serializer_class = ProductSerializer
 #     # lookup_field = 'pk' -> int
 
+# function way to do Mixin
 @api_view(['GET', 'POST'])
 def product_alt_view(request, pk=None, *args, **kwargs):
     method = request.method
