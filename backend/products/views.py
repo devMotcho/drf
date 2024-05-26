@@ -1,12 +1,14 @@
-from rest_framework import generics
+from rest_framework import authentication,generics, mixins, permissions
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-# from django.http import Http404
 from django.shortcuts import get_object_or_404
 
 
 from .models import Product
+from .permissions import IsStaffEditorPermission
 from .serializers import ProductSerializer
+
+
 
 
 class ProductListCreateAPIView(generics.ListCreateAPIView):
@@ -16,7 +18,11 @@ class ProductListCreateAPIView(generics.ListCreateAPIView):
     """
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-
+    authentication_classes = [authentication.SessionAuthentication]
+    permission_classes = [permissions.IsAdminUser,IsStaffEditorPermission]
+    # IsAuthenticatedOrReadOnly -> can only read
+    # IsAuthenticated -> Need be authenticated
+    # DjangoModelPermissions -> Group Permissions
     def perform_create(self, serializer):
         # serializer.save(user=self.request.user)
         title = serializer.validated_data.get('title')
@@ -61,6 +67,38 @@ class ProductDestroyAPIView(generics.DestroyAPIView):
         #instance
         return super().perform_destroy(instance)
 
+
+class ProductMixinView(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    generics.GenericAPIView
+    ):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+    lookup_field = 'pk' # list dont care about this.
+
+    #HTTP -> get 
+    def get(self, request, *args, **kwargs):
+        print(args, kwargs)
+        pk = kwargs.get("pk")
+        # Detail view
+        if pk is not None:
+            return self.retrieve(request, *args, **kwargs)
+        # List View
+        return self.list(request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+    
+    def perform_create(self, serializer):
+        # serializer.save(user=self.request.user)
+        title = serializer.validated_data.get('title')
+        content = serializer.validated_data.get('content')
+        if content is None:
+            content = title
+        serializer.save(content=content)
+        return super().perform_create(serializer)
 
 # class ProductListAPIView(generics.ListAPIView):
 #     """

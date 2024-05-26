@@ -5,6 +5,7 @@ from .views import (
     ProductUpdateAPIView,
     ProductDestroyAPIView,
     ProductListCreateAPIView,
+    ProductMixinView,
 )
 
 urlpatterns = [
